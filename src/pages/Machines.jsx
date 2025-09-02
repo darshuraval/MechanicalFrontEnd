@@ -6,7 +6,7 @@ export default function Machines() {
   const [machines, setMachines] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add"); // "add" | "edit" | "delete"
-  const [form, setForm] = useState({ Id: "", MachineName: "", Remarks: "", IsActive: true });
+  const [form, setForm] = useState({ ID: "", MachineName: "", Remarks: "", IsActive: true });
 
   // Replace with your API base
   // const apiBase = window.location.origin;
@@ -37,13 +37,13 @@ export default function Machines() {
     setModalType(type);
     if (machine) {
       setForm({
-        Id: machine.Id,
+        ID: machine.ID,
         MachineName: machine.MachineName,
         Remarks: machine.Remarks ?? "",
         IsActive: machine.IsActive
       });
     } else {
-      setForm({ Id: "", MachineName: "", Remarks: "", IsActive: true });
+      setForm({ ID: "", MachineName: "", Remarks: "", IsActive: true });
     }
     setShowModal(true);
   }
@@ -59,7 +59,7 @@ export default function Machines() {
       Remarks: form.Remarks,
       IsActive: form.IsActive
     };
-    if (modalType === "edit") payload.Id = form.Id;
+    if (modalType === "edit") payload.ID = form.ID;
 
     await fetch(`${apiBase}/MachineAddEdit`, {
       method: "POST",
@@ -74,7 +74,7 @@ export default function Machines() {
     await fetch(`${apiBase}/MachineDelete`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Id: form.Id })
+      body: JSON.stringify({ ID: form.ID })
     });
     closeModal();
     loadMachines();
@@ -89,7 +89,7 @@ export default function Machines() {
       <Table striped bordered hover>
         <thead>
           <tr>
-            <th>Id</th>
+            <th>ID</th>
             <th>Name</th>
             <th>Remarks</th>
             <th>Active</th>
@@ -100,8 +100,8 @@ export default function Machines() {
         </thead>
         <tbody>
           {machines.map((row) => (
-            <tr key={row.Id}>
-              <td>{row.Id}</td>
+            <tr key={row.ID}>
+              <td>{row.ID}</td>
               <td>{row.MachineName}</td>
               <td>{row.Remarks ?? ""}</td>
               <td>{row.IsActive ? "Yes" : "No"}</td>
