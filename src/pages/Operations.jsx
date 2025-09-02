@@ -5,7 +5,7 @@ export default function Operations() {
   const [operations, setOperations] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add"); // "add" | "edit" | "delete"
-  const [form, setForm] = useState({ ID: "", Name: "", Type: "", Remarks: "", IsActive: true });
+  const [form, setForm] = useState({ Id: "", Name: "", Type: "", Remarks: "", IsActive: true });
 
   // Replace with your API base
   // const apiBase = window.location.origin;
@@ -36,7 +36,7 @@ export default function Operations() {
     setModalType(type);
     if (operation) {
       setForm({
-        ID: operation.ID,
+        Id: operation.ID,
         Name: operation.Name,
         Type: operation.Type ?? "",
         Remarks: operation.Remarks ?? "",
@@ -98,8 +98,8 @@ export default function Operations() {
         </thead>
         <tbody>
           {operations.map((row) => (
-            <tr key={row.ID}>
-              <td>{row.ID}</td>
+            <tr key={row.Id}>
+              <td>{row.Id}</td>
               <td>{row.Name}</td>
               <td>{row.Type ?? ""}</td>
               <td>{row.Remarks ?? ""}</td>
