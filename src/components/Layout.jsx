@@ -1,50 +1,82 @@
+import { Link, Outlet } from "react-router-dom";
 import { useState } from "react";
+import './Layout.css';  // <-- import here
 
-export default function Layout({ children }) {
-  const [open, setOpen] = useState(true);
+export default function Layout() {
+  const [openSections, setOpenSections] = useState({
+    master: false,
+    transactions: false,
+  });
+
+  const toggleSection = (section) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   return (
-    <div className="d-flex flex-column vh-100">
-      {/* Header */}
-      <header className="bg-primary text-white d-flex justify-content-between align-items-center px-3 py-2">
-        <h1 className="h4 m-0">Mechanical Scheduler</h1>
-        <nav className="d-none d-md-flex gap-3">
-          <a href="#" className="text-white text-decoration-none">Dashboard</a>
-          <a href="#" className="text-white text-decoration-none">Machines</a>
-          <a href="#" className="text-white text-decoration-none">Schedules</a>
-          <a href="#" className="text-white text-decoration-none">Reports</a>
-        </nav>
-        <button
-          className="btn btn-sm btn-dark d-md-none"
-          onClick={() => setOpen(!open)}
+    <div className="d-flex">
+      {/* Sidebar */}
+      <div className="bg-dark text-white p-3 vh-100" style={{ width: "250px" }}>
+        <h2 className="mb-4">Mechanical Scheduler</h2>
+        <h6><Link to="/" className="text-uppercase text-secondary sidebar-link">DashBoard</Link></h6>
+        {/* Master Section */}
+        <h6
+          className="text-uppercase text-secondary"
+          role="button"
+          onClick={() => toggleSection("master")}
         >
-          {open ? "Close" : "Menu"}
-        </button>
-      </header>
+          <h6 className="text-uppercase text-secondary sidebar-link">Master {openSections.master ? "▼" : "▶"}</h6>
+        </h6>
 
-      <div className="d-flex flex-grow-1">
-        {/* Sidebar */}
-        {open && (
-          <aside className="bg-light border-end p-3" style={{ width: "220px" }}>
-            <ul className="list-unstyled">
-              <li><a href="#" className="text-decoration-none d-block py-1">Dashboard</a></li>
-              <li><a href="#" className="text-decoration-none d-block py-1">Machines</a></li>
-              <li><a href="#" className="text-decoration-none d-block py-1">Schedules</a></li>
-              <li><a href="#" className="text-decoration-none d-block py-1">Reports</a></li>
-            </ul>
-          </aside>
+        {openSections.master && (
+          <ul className="nav flex-column mb-3">
+            <li className="nav-item">
+              <Link to="/machines" className="sidebar-link text-white">Machines</Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/Operations" className="sidebar-link text-white">Operations</Link>
+            </li>
+            
+
+            <li className="nav-item">
+              <Link to="/MachineOperations" className="sidebar-link text-white">Machine Operations</Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/components" className="sidebar-link text-white">Components</Link>
+            </li>
+          </ul>
         )}
 
-        {/* Main Content */}
-        <main className="flex-grow-1 p-3 bg-light">
-          {children}
-        </main>
+        {/* Transactions Section */}
+        <h6
+          className="text-uppercase text-secondary"
+          role="button"
+          onClick={() => toggleSection("transactions")}
+        >
+          <h6 className="text-uppercase text-secondary sidebar-link">Transactions {openSections.transactions ? "▼" : "▶"}</h6>
+        </h6>
+
+        {openSections.transactions && (
+          <ul className="nav flex-column mb-3">
+            <li className="nav-item">
+              <Link to="/schedules" className="sidebar-link text-white">Schedules</Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/assignments" className="sidebar-link text-white">Assignments</Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/reports" className="sidebar-link text-white">Reports</Link>
+            </li>
+          </ul>
+        )}
       </div>
 
-      {/* Footer */}
-      <footer className="bg-secondary text-white text-center py-2">
-        © {new Date().getFullYear()} Mechanical Scheduler
-      </footer>
+      {/* Main Content */}
+      <div className="flex-grow-1 p-4 bg-light" style={{ height: "100vh", overflowY: "auto" }}>
+        <Outlet />
+      </div>
     </div>
   );
 }
