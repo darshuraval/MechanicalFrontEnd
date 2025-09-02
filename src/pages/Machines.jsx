@@ -43,7 +43,7 @@ export default function Machines() {
         IsActive: machine.IsActive
       });
     } else {
-      setForm({ ID: "", MachineName: "", Remarks: "", IsActive: true });
+      setForm({ ID: 0 , MachineName: "", Remarks: "", IsActive: true });
     }
     setShowModal(true);
   }
@@ -145,7 +145,7 @@ export default function Machines() {
                 <Form.Control
                   type="text"
                   value={form.MachineName}
-                  required
+                  required  
                   onChange={(e) => setForm({ ...form, MachineName: e.target.value })}
                 />
               </Form.Group>
