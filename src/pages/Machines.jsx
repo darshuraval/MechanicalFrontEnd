@@ -6,12 +6,11 @@ export default function Machines() {
   const [machines, setMachines] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add"); // "add" | "edit" | "delete"
-  const [form, setForm] = useState({ ID: "", MachineName: "", Remarks: "", IsActive: true });
+  const [form, setForm] = useState({ MachineID: 0, MachineCode: "", MachineName: "", Remarks: "", IsActive: true });
 
-  // Replace with your API base
-  // const apiBase = window.location.origin;
-  // const apiBase = "https://localhost:7161";
-  const apiBase = "https://darshan.runasp.net";
+  // API Base
+  const apiBase = "https://localhost:7161/api/Machine";
+  // const apiBase = "https://darshan.runasp.net/api/Machine";
 
   // Load machines
   useEffect(() => {
@@ -20,15 +19,16 @@ export default function Machines() {
 
   async function loadMachines() {
     try {
-      const res = await fetch(`${apiBase}/MachineGetListing`, {
+      const res = await fetch(`${apiBase}/GetForListing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({})
       });
       const data = await res.json();
-      setMachines(data);
+
+      // Extract nested array
+      setMachines(data?.items?.lstResult1 || []);
     } catch (err) {
-      //alert("Error loading machines");
       console.error("Error loading machines:", err);
     }
   }
@@ -37,13 +37,14 @@ export default function Machines() {
     setModalType(type);
     if (machine) {
       setForm({
-        ID: machine.ID,
+        MachineID: machine.MachineID,
+        MachineCode: machine.MachineCode,
         MachineName: machine.MachineName,
         Remarks: machine.Remarks ?? "",
         IsActive: machine.IsActive
       });
     } else {
-      setForm({ ID: 0 , MachineName: "", Remarks: "", IsActive: true });
+      setForm({ MachineID: 0, MachineCode: "", MachineName: "", Remarks: "", IsActive: true });
     }
     setShowModal(true);
   }
@@ -55,27 +56,30 @@ export default function Machines() {
   async function handleSave(e) {
     e.preventDefault();
     const payload = {
+      ID: form.MachineID, // backend expects ID
+      MachineCode: form.MachineCode,
       MachineName: form.MachineName,
       Remarks: form.Remarks,
       IsActive: form.IsActive
     };
-    if (modalType === "edit") payload.ID = form.ID;
 
-    await fetch(`${apiBase}/MachineAddEdit`, {
+    await fetch(`${apiBase}/AddEdit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
+
     closeModal();
     loadMachines();
   }
 
   async function handleDelete() {
-    await fetch(`${apiBase}/MachineDelete`, {
+    await fetch(`${apiBase}/DeleteByID`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ID: form.ID })
+      body: JSON.stringify({ ID: form.MachineID })
     });
+
     closeModal();
     loadMachines();
   }
@@ -90,6 +94,7 @@ export default function Machines() {
         <thead>
           <tr>
             <th>ID</th>
+            <th>Code</th>
             <th>Name</th>
             <th>Remarks</th>
             <th>Active</th>
@@ -100,13 +105,14 @@ export default function Machines() {
         </thead>
         <tbody>
           {machines.map((row) => (
-            <tr key={row.ID}>
-              <td>{row.ID}</td>
+            <tr key={row.MachineID}>
+              <td>{row.MachineID}</td>
+              <td>{row.MachineCode}</td>
               <td>{row.MachineName}</td>
               <td>{row.Remarks ?? ""}</td>
               <td>{row.IsActive ? "Yes" : "No"}</td>
-              <td>{row.CreatedDate}</td>
-              <td>{row.UpdatedDate}</td>
+              <td>{row.AddDate}</td>
+              <td>{row.EditDate}</td>
               <td>
                 <Button
                   variant="warning"
@@ -129,6 +135,7 @@ export default function Machines() {
         </tbody>
       </Table>
 
+      {/* Modal */}
       <Modal show={showModal} onHide={closeModal}>
         <Modal.Header closeButton>
           <Modal.Title>
@@ -141,11 +148,20 @@ export default function Machines() {
           {(modalType === "add" || modalType === "edit") && (
             <Form onSubmit={handleSave}>
               <Form.Group className="mb-3">
+                <Form.Label>Machine Code</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={form.MachineCode}
+                  required
+                  onChange={(e) => setForm({ ...form, MachineCode: e.target.value })}
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
                 <Form.Label>Machine Name</Form.Label>
                 <Form.Control
                   type="text"
                   value={form.MachineName}
-                  required  
+                  required
                   onChange={(e) => setForm({ ...form, MachineName: e.target.value })}
                 />
               </Form.Group>
@@ -174,7 +190,9 @@ export default function Machines() {
           )}
           {modalType === "delete" && (
             <div>
-              <p>Are you sure you want to delete <strong>{form.MachineName}</strong>?</p>
+              <p>
+                Are you sure you want to delete <strong>{form.MachineName}</strong>?
+              </p>
               <Button variant="danger" onClick={handleDelete}>
                 Delete
               </Button>
