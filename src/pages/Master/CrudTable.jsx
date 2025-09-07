@@ -60,7 +60,10 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
     if (row) setForm({ ...row, ID: row[idKey] });
     else {
       const initForm = { ID: 0 };
-      formFields.forEach(f => initForm[f.key] = f.type === "select" ? "" : "");
+      formFields.forEach(f => {
+        if (f.type === "select" || f.type === "boolean") initForm[f.key] = "";
+        else initForm[f.key] = "";
+      });
       setForm(initForm);
     }
     setShowModal(true);
@@ -77,6 +80,11 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
         let value = form[field.key];
         if (field.type === "int") value = Number(value);
         else if (field.type === "float") value = parseFloat(value);
+        else if (field.type === "boolean") value = Boolean(value);
+        else if (field.type === "select") {
+          if (value === "true") value = true;
+          else if (value === "false") value = false;
+        }
         payload[field.key] = value;
       });
       payload.ID = form.ID || 0;

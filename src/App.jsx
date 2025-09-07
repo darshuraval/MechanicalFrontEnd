@@ -6,7 +6,7 @@ import MachineOperation from "./pages/Master/MachineOperation";
 import Component from "./pages/Master/Component";
 import ComponentSetting from "./pages/Master/ComponentSetting";
 
-import Schedules from "./pages/Transaction/Schedules";
+import Schedules from "./pages/Transaction/MachineSchedule";
 import Assignments from "./pages/Transaction/Assignments";
 import Reports from "./pages/Transaction/Reports";
 
