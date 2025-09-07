@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Spinner } from "react-bootstrap";
+import * as signalR from "@microsoft/signalr";
+
 
 export default function CrudTable({ title, apiBase, endpoints, columns, formFields, idKey }) {
   const [rows, setRows] = useState([]);
@@ -33,6 +35,25 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
       setLoading(false); // end loading
     }
   }
+  // SignalR: real-time reload
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("/notificationHub") // your backend hub endpoint
+      .withAutomaticReconnect()
+      .build();
+
+    connection.start()
+      .then(() => console.log("SignalR connected"))
+      .catch(err => console.error("SignalR connection error:", err));
+
+    connection.on(hubEvent, () => {
+      loadData();
+    });
+
+    return () => {
+      connection.stop();
+    };
+  }, [hubEvent]);
 
   useEffect(() => {
     loadData();
