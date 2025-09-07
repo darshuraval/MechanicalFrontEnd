@@ -23,7 +23,7 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
       if (Array.isArray(list)) {
         setRows(list);
       } else if (list) {
-        setRows([list]); // wrap single object
+        setRows([list]);
       } else {
         setRows([]);
       }
@@ -41,10 +41,16 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
   function openModal(type, row = null) {
     setModalType(type);
     if (row) {
-      const recordId = row[idKey]; // pick correct primary key
-      setForm({ ...row, ID: recordId }); // normalize backend ID
+      const recordId = row[idKey];
+      setForm({ ...row, ID: recordId });
     } else {
-      setForm({ ID: 0 });
+      // Initialize selects to empty string
+      const initForm = { ID: 0 };
+      formFields.forEach(f => {
+        if (f.type === "select") initForm[f.key] = "";
+        else initForm[f.key] = "";
+      });
+      setForm(initForm);
     }
     setShowModal(true);
   }
@@ -57,7 +63,17 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
   async function handleSave(e) {
     e.preventDefault();
     try {
-      const payload = { ...form };
+      const payload = {};
+      formFields.forEach((field) => {
+        let value = form[field.key];
+
+        if (field.type === "int") value = Number(value);
+        else if (field.type === "float") value = parseFloat(value);
+
+        payload[field.key] = value;
+      });
+
+      payload.ID = form.ID || 0;
 
       await fetch(`${apiBase}${endpoints.save}`, {
         method: "POST",
@@ -111,9 +127,11 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
               let val = e.target.value;
               if (val === "true") val = true;
               if (val === "false") val = false;
+              if (field.type === "int" && val !== "") val = parseInt(val, 10);
               setForm({ ...form, [field.key]: val });
             }}
           >
+            <option value="">-select-</option>
             {field.options?.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -126,12 +144,20 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
           <Form.Control
             type={field.type || "text"}
             value={value}
+            min={field.min}
+            max={field.max}
+            step={field.step}
             required={field.required}
             onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
           />
         );
     }
   }
+
+  // Check if Save button should be disabled
+  const isSaveDisabled = formFields.some(
+    f => f.type === "select" && (!form[f.key] && form[f.key] !== 0)
+  );
 
   return (
     <div className="container mt-4">
@@ -206,7 +232,9 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
                   {renderInput(field)}
                 </Form.Group>
               ))}
-              <Button type="submit">Save</Button>
+              <Button type="submit" disabled={isSaveDisabled}>
+                Save
+              </Button>
             </Form>
           )}
           {modalType === "delete" && (

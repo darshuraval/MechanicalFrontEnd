@@ -54,9 +54,9 @@ export default function ComponentSetting() {
         { key: "ComponentID", label: "ID" },
         { key: "ComponentName", label: "Component Name" },
         { key: "ComponentType", label: "Component Type" },
-        { key: "MachineOperationName", label: "Operation" },
-        { key: "CycleTime", label: "Cycle Time" },
-        { key: "SetupTime", label: "Setup Time" },
+        { key: "MachineOperationName", label: "Machine Operation" },
+        { key: "CycleTime", label: "Cycle Time (In minutes)" },
+        { key: "SetupTime", label: "Setup Time (In minutes)" },
         { key: "AddDate", label: "Created" },
         { key: "EditDate", label: "Modified" },
       ]}
@@ -79,19 +79,21 @@ export default function ComponentSetting() {
             value: op.MachineOperationID,
             label: `${op.MachineName} → ${op.OperationName}`
           })),
-          multiple: true, // allow multiple operations per component
+          multiple: false,
           required: true
         },
         {
           key: "CycleTime",
-          label: "Cycle Time",
+          label: "Cycle Time (In minutes)",
           type: "number",
+          min: 0,
           required: true
         },
         {
           key: "SetupTime",
-          label: "Setup Time",
+          label: "Setup Time (In minutes)",
           type: "number",
+          min: 0,
           required: true
         }
       ]}
