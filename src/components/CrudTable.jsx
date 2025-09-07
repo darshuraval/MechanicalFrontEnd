@@ -9,13 +9,28 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
 
   // Load data
   async function loadData() {
-    const res = await fetch(`${apiBase}${endpoints.list}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({})
-    });
-    const data = await res.json();
-    setRows(data?.items?.lstResult1 || []);
+    try {
+      const res = await fetch(`${apiBase}${endpoints.list}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+
+      let list = data?.items?.lstResult1;
+
+      // Normalize to array
+      if (Array.isArray(list)) {
+        setRows(list);
+      } else if (list) {
+        setRows([list]); // wrap single object
+      } else {
+        setRows([]);
+      }
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setRows([]);
+    }
   }
 
   useEffect(() => {
@@ -26,8 +41,8 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
   function openModal(type, row = null) {
     setModalType(type);
     if (row) {
-      const recordId = row[idKey];      // pick correct primary key
-      setForm({ ...row, ID: recordId }); // always normalize to "ID" for backend
+      const recordId = row[idKey]; // pick correct primary key
+      setForm({ ...row, ID: recordId }); // normalize backend ID
     } else {
       setForm({ ID: 0 });
     }
@@ -41,28 +56,36 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
   // Save (Add/Edit)
   async function handleSave(e) {
     e.preventDefault();
-    const payload = { ...form };
+    try {
+      const payload = { ...form };
 
-    await fetch(`${apiBase}${endpoints.save}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+      await fetch(`${apiBase}${endpoints.save}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-    closeModal();
-    loadData();
+      closeModal();
+      loadData();
+    } catch (err) {
+      console.error("Error saving record:", err);
+    }
   }
 
   // Delete
   async function handleDelete() {
-    await fetch(`${apiBase}${endpoints.delete}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ID: form.ID })
-    });
+    try {
+      await fetch(`${apiBase}${endpoints.delete}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ID: form.ID })
+      });
 
-    closeModal();
-    loadData();
+      closeModal();
+      loadData();
+    } catch (err) {
+      console.error("Error deleting record:", err);
+    }
   }
 
   // Render input field
@@ -128,32 +151,40 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row[idKey]}>
-              {columns.map((col) => (
-                <td key={col.key}>
-                  {col.render ? col.render(row[col.key], row) : row[col.key]}
+          {rows.length > 0 ? (
+            rows.map((row) => (
+              <tr key={row[idKey]}>
+                {columns.map((col) => (
+                  <td key={col.key}>
+                    {col.render ? col.render(row[col.key], row) : row[col.key]}
+                  </td>
+                ))}
+                <td>
+                  <Button
+                    size="sm"
+                    variant="warning"
+                    className="me-1"
+                    onClick={() => openModal("edit", row)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => openModal("delete", row)}
+                  >
+                    Delete
+                  </Button>
                 </td>
-              ))}
-              <td>
-                <Button
-                  size="sm"
-                  variant="warning"
-                  className="me-1"
-                  onClick={() => openModal("edit", row)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => openModal("delete", row)}
-                >
-                  Delete
-                </Button>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={columns.length + 1} className="text-center">
+                No records found
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </Table>
 
