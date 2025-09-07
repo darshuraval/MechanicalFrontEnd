@@ -29,17 +29,9 @@ export default function Machine() {
         { key: "MachineName", label: "Machine Name", type: "text", required: true },
         { key: "Details", label: "Details", type: "textarea" },
         { key: "Remarks", label: "Remarks", type: "textarea" },
-        {
-          key: "IsActive",
-          label: "Active",
-          type: "select",
-          options: [
-            { value: true, label: "Yes" },
-            { value: false, label: "No" }
-          ]
-        }
+        { key: "IsActive", label: "Active", type: "boolean" } // checkbox
       ]}
       idKey="MachineID"
-      />
-    );
+    />
+  );
 }

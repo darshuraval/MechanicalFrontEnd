@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Table, Button, Modal, Form, Spinner } from "react-bootstrap";
 import * as signalR from "@microsoft/signalr";
+import { API_BASE_SOCKET } from "../../config";
 
 export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns, formFields, idKey }) {
   const [rows, setRows] = useState([]);
@@ -11,9 +12,9 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  let connectionRef = null;
+  const connectionRef = useRef(null);
 
-  // Load data from API
+  // Load data
   async function loadData() {
     try {
       setLoading(true);
@@ -37,12 +38,12 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
     }
   }
 
-  // Setup SignalR for this table (only refresh this table’s group)
+  // Setup SignalR
   useEffect(() => {
     loadData();
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("https://localhost:7161/updatesHub")
+      .withUrl(API_BASE_SOCKET)
       .withAutomaticReconnect()
       .build();
 
@@ -50,23 +51,17 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
       .start()
       .then(() => {
         console.log("SignalR Connected for", hubEvent);
-
-        // 👇 join group based on table title/HubEvent
         connection.invoke("JoinGroup", hubEvent);
-
-        connection.on("RefreshData", () => {
-          console.log(`Reloading ${hubEvent} after update...`);
-          loadData();
-        });
+        connection.on("RefreshData", () => loadData());
       })
       .catch((err) => console.error("SignalR connection error:", err));
 
-    connectionRef = connection;
+    connectionRef.current = connection;
 
     return () => {
-      if (connectionRef) {
-        connectionRef.invoke("LeaveGroup", hubEvent);
-        connectionRef.stop();
+      if (connectionRef.current) {
+        connectionRef.current.invoke("LeaveGroup", hubEvent).catch(() => {});
+        connectionRef.current.stop().catch(() => {});
       }
     };
   }, []);
@@ -75,16 +70,12 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
   useEffect(() => {
     if (!searchText) setFilteredRows(rows);
     else {
-      const lowerSearch = searchText.toLowerCase();
+      const lower = searchText.toLowerCase();
       setFilteredRows(
         rows.filter((row) =>
           columns.some((col) => {
             const val = row[col.key];
-            return (
-              val !== null &&
-              val !== undefined &&
-              val.toString().toLowerCase().includes(lowerSearch)
-            );
+            return val != null && val.toString().toLowerCase().includes(lower);
           })
         )
       );
@@ -97,7 +88,7 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
     if (row) setForm({ ...row, ID: row[idKey] });
     else {
       const initForm = { ID: 0 };
-      formFields.forEach((f) => (initForm[f.key] = ""));
+      formFields.forEach((f) => (initForm[f.key] = f.type === "boolean" ? false : ""));
       setForm(initForm);
     }
     setShowModal(true);
@@ -107,17 +98,17 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
     setShowModal(false);
   }
 
-  // Save (Add/Edit)
+  // Save record
   async function handleSave(e) {
     e.preventDefault();
     try {
       const payload = {};
-      formFields.forEach((field) => {
-        let value = form[field.key];
-        if (field.type === "int") value = Number(value);
-        else if (field.type === "float") value = parseFloat(value);
-        else if (field.type === "boolean") value = Boolean(value);
-        payload[field.key] = value;
+      formFields.forEach((f) => {
+        let val = form[f.key];
+        if (f.type === "int") val = Number(val);
+        else if (f.type === "float") val = parseFloat(val);
+        else if (f.type === "boolean") val = Boolean(val);
+        payload[f.key] = val;
       });
       payload.ID = form.ID || 0;
 
@@ -133,7 +124,7 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
     }
   }
 
-  // Delete
+  // Delete record
   async function handleDelete() {
     try {
       await fetch(`${apiBase}${endpoints.delete}`, {
@@ -147,41 +138,48 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
     }
   }
 
-  // Render input field
-  function renderInput(field) {
-    const value = form[field.key] ?? "";
-    switch (field.type) {
+  // Render input
+  function renderInput(f) {
+    const value = form[f.key];
+    switch (f.type) {
       case "textarea":
         return (
           <Form.Control
             as="textarea"
             rows={3}
             value={value}
-            required={field.required}
-            onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+            onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
           />
         );
       case "select":
         return (
           <Form.Select
             value={value}
-            onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+            onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
           >
             <option value="">-select-</option>
-            {field.options?.map((opt) => (
+            {f.options?.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </Form.Select>
         );
+      case "boolean":
+        return (
+          <Form.Check
+            type="checkbox"
+            checked={!!value}
+            onChange={(e) => setForm({ ...form, [f.key]: e.target.checked })}
+            label=""
+          />
+        );
       default:
         return (
           <Form.Control
-            type={field.type || "text"}
+            type={f.type || "text"}
             value={value}
-            required={field.required}
-            onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+            onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
           />
         );
     }
@@ -194,7 +192,6 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
   return (
     <div className="container mt-4">
       <h2>{title}</h2>
-
       <div className="d-flex justify-content-between mb-2">
         <Button onClick={() => openModal("add")}>Add {title}</Button>
         <Form.Control
@@ -209,8 +206,8 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
       <Table striped bordered hover>
         <thead>
           <tr>
-            {columns.map((col) => (
-              <th key={col.key}>{col.label}</th>
+            {columns.map((c) => (
+              <th key={c.key}>{c.label}</th>
             ))}
             <th>Actions</th>
           </tr>
@@ -225,35 +222,18 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
           ) : filteredRows.length > 0 ? (
             filteredRows.map((row) => (
               <tr key={row[idKey]}>
-                {columns.map((col) => (
-                  <td key={col.key}>
-                    {col.render ? col.render(row[col.key], row) : row[col.key]}
-                  </td>
+                {columns.map((c) => (
+                  <td key={c.key}>{c.render ? c.render(row[c.key], row) : row[c.key]}</td>
                 ))}
                 <td>
-                  <Button
-                    size="sm"
-                    variant="warning"
-                    className="me-1"
-                    onClick={() => openModal("edit", row)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => openModal("delete", row)}
-                  >
-                    Delete
-                  </Button>
+                  <Button size="sm" variant="warning" className="me-1" onClick={() => openModal("edit", row)}>Edit</Button>
+                  <Button size="sm" variant="danger" onClick={() => openModal("delete", row)}>Delete</Button>
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={columns.length + 1} className="text-center">
-                No records found
-              </td>
+              <td colSpan={columns.length + 1} className="text-center">No records found</td>
             </tr>
           )}
         </tbody>
@@ -262,36 +242,25 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
       <Modal show={showModal} onHide={closeModal}>
         <Modal.Header closeButton>
           <Modal.Title>
-            {modalType === "add"
-              ? `Add ${title}`
-              : modalType === "edit"
-              ? `Edit ${title}`
-              : `Delete ${title}`}
+            {modalType === "add" ? `Add ${title}` : modalType === "edit" ? `Edit ${title}` : `Delete ${title}`}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {(modalType === "add" || modalType === "edit") && (
             <Form onSubmit={handleSave}>
-              {formFields.map((field) => (
-                <Form.Group className="mb-3" key={field.key}>
-                  <Form.Label>{field.label}</Form.Label>
-                  {renderInput(field)}
+              {formFields.map((f) => (
+                <Form.Group key={f.key} className="mb-3">
+                  <Form.Label>{f.label}</Form.Label>
+                  {renderInput(f)}
                 </Form.Group>
               ))}
-              <Button type="submit" disabled={isSaveDisabled}>
-                Save
-              </Button>
+              <Button type="submit" disabled={isSaveDisabled}>Save</Button>
             </Form>
           )}
           {modalType === "delete" && (
             <div>
-              <p>
-                Are you sure you want to delete{" "}
-                <b>{form.MachineName || form.Name || form.OperationName}</b>?
-              </p>
-              <Button variant="danger" onClick={handleDelete}>
-                Delete
-              </Button>
+              <p>Are you sure you want to delete <b>{form.MachineName || form.Name || form.OperationName}</b>?</p>
+              <Button variant="danger" onClick={handleDelete}>Delete</Button>
             </div>
           )}
         </Modal.Body>
