@@ -9,7 +9,7 @@ export default function MachineOperation() {
   // Load dropdown data
   useEffect(() => {
     async function loadDropdowns() {
-      const resMachines = await fetch(`${API_BASE}/Machine/GetForHelp`, {
+      const resMachines = await fetch(`${API_BASE}api/Machine/GetForHelp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({})
@@ -17,7 +17,7 @@ export default function MachineOperation() {
       const dataMachines = await resMachines.json();
       setMachines(dataMachines?.items?.lstResult1 || []);
 
-      const resOps = await fetch(`${API_BASE}/OperationType/GetForHelp`, {
+      const resOps = await fetch(`${API_BASE}api/OperationType/GetForHelp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({})
@@ -32,7 +32,7 @@ export default function MachineOperation() {
   return (
     <CrudTable
       title="Machine Operation"
-      apiBase={`${API_BASE}/MachineOperation`}
+      apiBase={`${API_BASE}api/MachineOperation`}
       endpoints={{
         list: "/GetForListing",
         save: "/AddEdit",

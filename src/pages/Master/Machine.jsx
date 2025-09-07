@@ -6,7 +6,7 @@ export default function Machine() {
   return (
     <CrudTable
       title="Machine"
-      apiBase={`${API_BASE}/Machine`}
+      apiBase={`${API_BASE}api/Machine`}
       endpoints={{
         list: "/GetForListing",
         save: "/AddEdit",

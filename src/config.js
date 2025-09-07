@@ -1,2 +1,2 @@
 // named export
-export const API_BASE = "https://localhost:7161/api";
+export const API_BASE = "https://localhost:7161/";

@@ -6,7 +6,7 @@ export default function OperationType() {
   return (
     <CrudTable
       title="Operation Types"
-      apiBase={`${API_BASE}/OperationType`}
+      apiBase={`${API_BASE}api/OperationType`}
       endpoints={{
         list: "/GetForListing",
         save: "/AddEdit",
@@ -16,7 +16,6 @@ export default function OperationType() {
       columns={[
         { key: "OperationTypeID", label: "ID" },
         { key: "OperationName", label: "Operation Name" },
-        { key: "IsActive", label: "Active", render: v => (v ? "Yes" : "No") },
         // { key: "AddBy", label: "Created By", render: v => (v ? new Date(v).toLocaleString() : "-") },
         // { key: "EditBy", label: "Modified By", render: v => (v ? new Date(v).toLocaleString() : "-") },
         { key: "AddDate", label: "Created", render: v => (v ? new Date(v).toLocaleString() : "-") },
