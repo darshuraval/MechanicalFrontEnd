@@ -7,6 +7,7 @@ export default function OperationType() {
     <CrudTable
       title="Operation Types"
       apiBase={`${API_BASE}api/OperationType`}
+      hubEvent="OperationType"
       endpoints={{
         list: "/GetForListing",
         save: "/AddEdit",

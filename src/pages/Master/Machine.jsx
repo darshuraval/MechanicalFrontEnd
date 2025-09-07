@@ -7,7 +7,7 @@ export default function Machine() {
     <CrudTable
       title="Machine"
       apiBase={`${API_BASE}api/Machine`}
-      hubEvent="ReloadMachines"
+      hubEvent="Machine"
       endpoints={{
         list: "/GetForListing",
         save: "/AddEdit",

@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Spinner } from "react-bootstrap";
 import * as signalR from "@microsoft/signalr";
 
-
-export default function CrudTable({ title, apiBase, endpoints, columns, formFields, idKey }) {
+export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns, formFields, idKey }) {
   const [rows, setRows] = useState([]);
   const [filteredRows, setFilteredRows] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -12,10 +11,12 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Load data
+  let connectionRef = null;
+
+  // Load data from API
   async function loadData() {
     try {
-      setLoading(true); // start loading
+      setLoading(true);
       const res = await fetch(`${apiBase}${endpoints.list}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -32,31 +33,42 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
       setRows([]);
       setFilteredRows([]);
     } finally {
-      setLoading(false); // end loading
+      setLoading(false);
     }
   }
-  // SignalR: real-time reload
+
+  // Setup SignalR for this table (only refresh this table’s group)
   useEffect(() => {
+    loadData();
+
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("/notificationHub") // your backend hub endpoint
+      .withUrl("https://localhost:7161/updatesHub")
       .withAutomaticReconnect()
       .build();
 
-    connection.start()
-      .then(() => console.log("SignalR connected"))
-      .catch(err => console.error("SignalR connection error:", err));
+    connection
+      .start()
+      .then(() => {
+        console.log("SignalR Connected for", hubEvent);
 
-    connection.on(hubEvent, () => {
-      loadData();
-    });
+        // 👇 join group based on table title/HubEvent
+        connection.invoke("JoinGroup", hubEvent);
+
+        connection.on("RefreshData", () => {
+          console.log(`Reloading ${hubEvent} after update...`);
+          loadData();
+        });
+      })
+      .catch((err) => console.error("SignalR connection error:", err));
+
+    connectionRef = connection;
 
     return () => {
-      connection.stop();
+      if (connectionRef) {
+        connectionRef.invoke("LeaveGroup", hubEvent);
+        connectionRef.stop();
+      }
     };
-  }, [hubEvent]);
-
-  useEffect(() => {
-    loadData();
   }, []);
 
   // Real-time search
@@ -68,7 +80,11 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
         rows.filter((row) =>
           columns.some((col) => {
             const val = row[col.key];
-            return val !== null && val !== undefined && val.toString().toLowerCase().includes(lowerSearch);
+            return (
+              val !== null &&
+              val !== undefined &&
+              val.toString().toLowerCase().includes(lowerSearch)
+            );
           })
         )
       );
@@ -81,16 +97,15 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
     if (row) setForm({ ...row, ID: row[idKey] });
     else {
       const initForm = { ID: 0 };
-      formFields.forEach(f => {
-        if (f.type === "select" || f.type === "boolean") initForm[f.key] = "";
-        else initForm[f.key] = "";
-      });
+      formFields.forEach((f) => (initForm[f.key] = ""));
       setForm(initForm);
     }
     setShowModal(true);
   }
 
-  function closeModal() { setShowModal(false); }
+  function closeModal() {
+    setShowModal(false);
+  }
 
   // Save (Add/Edit)
   async function handleSave(e) {
@@ -102,10 +117,6 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
         if (field.type === "int") value = Number(value);
         else if (field.type === "float") value = parseFloat(value);
         else if (field.type === "boolean") value = Boolean(value);
-        else if (field.type === "select") {
-          if (value === "true") value = true;
-          else if (value === "false") value = false;
-        }
         payload[field.key] = value;
       });
       payload.ID = form.ID || 0;
@@ -117,7 +128,6 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
       });
 
       closeModal();
-      loadData();
     } catch (err) {
       console.error("Error saving record:", err);
     }
@@ -132,7 +142,6 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
         body: JSON.stringify({ ID: form.ID })
       });
       closeModal();
-      loadData();
     } catch (err) {
       console.error("Error deleting record:", err);
     }
@@ -143,20 +152,44 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
     const value = form[field.key] ?? "";
     switch (field.type) {
       case "textarea":
-        return <Form.Control as="textarea" rows={3} value={value} required={field.required} onChange={e => setForm({ ...form, [field.key]: e.target.value })} />;
+        return (
+          <Form.Control
+            as="textarea"
+            rows={3}
+            value={value}
+            required={field.required}
+            onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+          />
+        );
       case "select":
         return (
-          <Form.Select value={value} onChange={e => setForm({ ...form, [field.key]: e.target.value })}>
+          <Form.Select
+            value={value}
+            onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+          >
             <option value="">-select-</option>
-            {field.options?.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            {field.options?.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </Form.Select>
         );
       default:
-        return <Form.Control type={field.type || "text"} value={value} min={field.min} max={field.max} step={field.step} required={field.required} onChange={e => setForm({ ...form, [field.key]: e.target.value })} />;
+        return (
+          <Form.Control
+            type={field.type || "text"}
+            value={value}
+            required={field.required}
+            onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+          />
+        );
     }
   }
 
-  const isSaveDisabled = formFields.some(f => f.type === "select" && (!form[f.key] && form[f.key] !== 0));
+  const isSaveDisabled = formFields.some(
+    (f) => f.type === "select" && (!form[f.key] && form[f.key] !== 0)
+  );
 
   return (
     <div className="container mt-4">
@@ -164,13 +197,21 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
 
       <div className="d-flex justify-content-between mb-2">
         <Button onClick={() => openModal("add")}>Add {title}</Button>
-        <Form.Control type="text" placeholder="Search..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: "250px" }} />
+        <Form.Control
+          type="text"
+          placeholder="Search..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ width: "250px" }}
+        />
       </div>
 
       <Table striped bordered hover>
         <thead>
           <tr>
-            {columns.map(col => <th key={col.key}>{col.label}</th>)}
+            {columns.map((col) => (
+              <th key={col.key}>{col.label}</th>
+            ))}
             <th>Actions</th>
           </tr>
         </thead>
@@ -182,18 +223,37 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
               </td>
             </tr>
           ) : filteredRows.length > 0 ? (
-            filteredRows.map(row => (
+            filteredRows.map((row) => (
               <tr key={row[idKey]}>
-                {columns.map(col => <td key={col.key}>{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
+                {columns.map((col) => (
+                  <td key={col.key}>
+                    {col.render ? col.render(row[col.key], row) : row[col.key]}
+                  </td>
+                ))}
                 <td>
-                  <Button size="sm" variant="warning" className="me-1" onClick={() => openModal("edit", row)}>Edit</Button>
-                  <Button size="sm" variant="danger" onClick={() => openModal("delete", row)}>Delete</Button>
+                  <Button
+                    size="sm"
+                    variant="warning"
+                    className="me-1"
+                    onClick={() => openModal("edit", row)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => openModal("delete", row)}
+                  >
+                    Delete
+                  </Button>
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={columns.length + 1} className="text-center">No records found</td>
+              <td colSpan={columns.length + 1} className="text-center">
+                No records found
+              </td>
             </tr>
           )}
         </tbody>
@@ -201,24 +261,37 @@ export default function CrudTable({ title, apiBase, endpoints, columns, formFiel
 
       <Modal show={showModal} onHide={closeModal}>
         <Modal.Header closeButton>
-          <Modal.Title>{modalType === "add" ? `Add ${title}` : modalType === "edit" ? `Edit ${title}` : `Delete ${title}`}</Modal.Title>
+          <Modal.Title>
+            {modalType === "add"
+              ? `Add ${title}`
+              : modalType === "edit"
+              ? `Edit ${title}`
+              : `Delete ${title}`}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {(modalType === "add" || modalType === "edit") && (
             <Form onSubmit={handleSave}>
-              {formFields.map(field => (
+              {formFields.map((field) => (
                 <Form.Group className="mb-3" key={field.key}>
                   <Form.Label>{field.label}</Form.Label>
                   {renderInput(field)}
                 </Form.Group>
               ))}
-              <Button type="submit" disabled={isSaveDisabled}>Save</Button>
+              <Button type="submit" disabled={isSaveDisabled}>
+                Save
+              </Button>
             </Form>
           )}
           {modalType === "delete" && (
             <div>
-              <p>Are you sure you want to delete <b>{form.MachineName || form.Name || form.OperationName}</b>?</p>
-              <Button variant="danger" onClick={handleDelete}>Delete</Button>
+              <p>
+                Are you sure you want to delete{" "}
+                <b>{form.MachineName || form.Name || form.OperationName}</b>?
+              </p>
+              <Button variant="danger" onClick={handleDelete}>
+                Delete
+              </Button>
             </div>
           )}
         </Modal.Body>

@@ -39,6 +39,7 @@ export default function MachineOperation() {
     <CrudTable
       title="Machine Operation"
       apiBase={`${API_BASE}api/MachineOperation`}
+      hubEvent="MachineOperation"
       endpoints={{
         list: "/GetForListing",
         save: "/AddEdit",

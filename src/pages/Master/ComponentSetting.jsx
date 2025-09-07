@@ -44,6 +44,7 @@ export default function ComponentSetting() {
     <CrudTable
       title="Component Settings"
       apiBase={`${API_BASE}api/ComponentSetting`}
+      hubEvent="ComponentSetting"
       endpoints={{
         list: "/GetForListing",
         save: "/AddEdit",
