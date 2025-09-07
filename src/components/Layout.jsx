@@ -55,8 +55,13 @@ export default function Layout() {
               </Link>
             </li>
             <li className="nav-item">
-              <Link to="/components" className="sidebar-link text-white">
-                Components
+              <Link to="/Component" className="sidebar-link text-white">
+                Component
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/ComponentSetting" className="sidebar-link text-white">
+                Component Setting
               </Link>
             </li>
           </ul>
