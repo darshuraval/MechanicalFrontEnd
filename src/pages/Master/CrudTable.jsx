@@ -119,6 +119,7 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
       });
 
       closeModal();
+      loadData();
     } catch (err) {
       console.error("Error saving record:", err);
     }
@@ -133,6 +134,7 @@ export default function CrudTable({ title, apiBase, hubEvent, endpoints, columns
         body: JSON.stringify({ ID: form.ID })
       });
       closeModal();
+      loadData();
     } catch (err) {
       console.error("Error deleting record:", err);
     }
