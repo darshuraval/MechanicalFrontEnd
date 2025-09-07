@@ -9,21 +9,27 @@ export default function MachineOperation() {
   // Load dropdown data
   useEffect(() => {
     async function loadDropdowns() {
-      const resMachines = await fetch(`${API_BASE}api/Machine/GetForHelp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({})
-      });
-      const dataMachines = await resMachines.json();
-      setMachines(dataMachines?.items?.lstResult1 || []);
+        try {
+        // Machines
+        const resMachines = await fetch(`${API_BASE}api/Machine/GetForHelp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        const dataMachines = await resMachines.json();
+        setMachines(dataMachines?.items?.lstResult1 || []);
 
-      const resOps = await fetch(`${API_BASE}api/OperationType/GetForHelp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({})
-      });
-      const dataOps = await resOps.json();
-      setOperationTypes(dataOps?.items?.lstResult1 || []);
+        // Operation Types
+        const resOps = await fetch(`${API_BASE}api/OperationType/GetForHelp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        const dataOps = await resOps.json();
+        setOperationTypes(dataOps?.items?.lstResult1 || []);
+      } catch (err) {
+        console.error("Error loading dropdowns:", err);
+      }
     }
 
     loadDropdowns();
@@ -44,8 +50,6 @@ export default function MachineOperation() {
         { key: "MachineCode", label: "Machine Code" },
         { key: "MachineName", label: "Machine Name" },
         { key: "OperationName", label: "Operation Type" },
-        // { key: "AddBy", label: "Created By" },
-        // { key: "EditBy", label: "Modified By" },
         { key: "AddDate", label: "Created" },
         { key: "EditDate", label: "Modified" },
       ]}
@@ -54,14 +58,20 @@ export default function MachineOperation() {
           key: "MachineID",
           label: "Machine",
           type: "select",
-          options: machines.map((m) => ({ value: m.MachineID, label: m.MachineName })),
+          options: machines.map((m) => ({
+            value: m.MachineID,
+            label: m.MachineName
+          })),
           required: true
         },
         {
           key: "OperationTypeID",
           label: "Operation Type",
           type: "select",
-          options: operationTypes.map((o) => ({ value: o.OperationTypeID, label: o.OperationName })),
+          options: operationTypes.map((o) => ({
+            value: o.OperationTypeID,
+            label: o.OperationName
+          })),
           required: true
         }
       ]}
