@@ -1,5 +1,5 @@
 import React from "react";
-import CrudTable from "../../components/CrudTable";
+import CrudTable from "./CrudTable";
 import { API_BASE } from "../../config";
 
 export default function OperationType() {
