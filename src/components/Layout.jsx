@@ -33,15 +33,13 @@ export default function Layout() {
         {openSections.master && (
           <ul className="nav flex-column mb-3">
             <li className="nav-item">
-              <Link to="/machines" className="sidebar-link text-white">Machines</Link>
+              <Link to="/Machine" className="sidebar-link text-white">Machine</Link>
             </li>
             <li className="nav-item">
-              <Link to="/Operations" className="sidebar-link text-white">Operations</Link>
+              <Link to="/OperationType" className="sidebar-link text-white">Operation Type</Link>
             </li>
-            
-
             <li className="nav-item">
-              <Link to="/MachineOperations" className="sidebar-link text-white">Machine Operations</Link>
+              <Link to="/MachineOperation" className="sidebar-link text-white">Machine Operation</Link>
             </li>
             <li className="nav-item">
               <Link to="/components" className="sidebar-link text-white">Components</Link>
