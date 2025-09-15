@@ -13,3 +13,27 @@
   background-color: #495057; /* Bootstrap dark gray */
   text-decoration: none;
 }
+
+/* Ensure all backgrounds are light mode */
+.bg-light {
+  background-color: #f8f9fa !important;
+}
+
+/* Global card and modal light backgrounds */
+.card {
+  background: white !important;
+}
+
+.card-header {
+  background: white !important;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-content {
+  background: white !important;
+}
+
+.modal-header {
+  background: white !important;
+  border-bottom: 1px solid #dee2e6;
+}
